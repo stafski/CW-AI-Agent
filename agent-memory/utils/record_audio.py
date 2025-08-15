@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from typing import Optional
 import sys
-import select
+import os
 
 def record_audio() -> Optional[str]:
     """Records audio from microphone when user presses Enter and stops when Enter is pressed again.
@@ -39,16 +39,30 @@ def record_audio() -> Optional[str]:
         stream.start_stream()
         print("Press Enter to start recording, press Enter again to stop...")
         
-        while True:
-            # Check if Enter key was pressed
-            if select.select([sys.stdin], [], [], 0.1)[0]:
-                sys.stdin.readline()
-                if not recording:
-                    recording = True
-                    print("Recording...")
-                else:
-                    break
-            time.sleep(0.1)  # Reduce CPU usage
+        # Windows-compatible input handling
+        if os.name == 'nt':  # Windows
+            import msvcrt
+            while True:
+                if msvcrt.kbhit():
+                    key = msvcrt.getch()
+                    if key == b'\r' or key == b'\n':  # Enter key
+                        if not recording:
+                            recording = True
+                            print("Recording...")
+                        else:
+                            break
+                time.sleep(0.1)
+        else:  # Unix-like systems
+            import select
+            while True:
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    sys.stdin.readline()
+                    if not recording:
+                        recording = True
+                        print("Recording...")
+                    else:
+                        break
+                time.sleep(0.1)
                 
         stream.stop_stream()
         stream.close()
